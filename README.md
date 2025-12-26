@@ -174,6 +174,8 @@ base_gdp × (1 + nominal_growth × elapsed_seconds / seconds_in_year)
 #### `continent_nominal_gdp`
 | continent_code | year | gdp_usd (billions) |
 
+#### `more DB table`
+
 ---
 
 ## 🔄 Yearly Update Process
