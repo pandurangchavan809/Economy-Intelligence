@@ -1,1 +1,22 @@
-# Auto-generated file
+# activate venv :- .\venv\Scripts\Activate.ps1
+streamlit
+mysql-connector-python
+requests
+python-dotenv
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+plotly
+autorefresh
+
+python-dotenv
+google-generativeai
+
+requests
+requests-oauthlib
+sqlalchemy
+pymysql      
+
+
