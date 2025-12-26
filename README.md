@@ -45,23 +45,35 @@ If the database is updated yearly, the system remains accurate **indefinitely**.
 ---
 
 ## 🧱 Architecture Overview
-│ Streamlit UI │ ← Live counters, charts, chat
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│ Python Core │ ← Aggregations, scoring, live math
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│ MySQL Database │ ← Source of Truth
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│ Gemini AI (LLM) │ ← Interpretation & reasoning only
 
+Below is a clean flow diagram showing how the system components interact.
 
+```mermaid
+flowchart TD
+    UI["Streamlit UI<br/>Live counters, charts, chat"]
+    Core["Python Core<br/>Aggregations, scoring, live math"]
+    DB["MySQL Database<br/>Source of Truth"]
+    AI["Gemini AI (LLM)<br/>Interpretation & reasoning only"]
 
----
+    UI --> Core
+    Core --> DB
+    Core --> AI
+    AI --> Core
+```
+
+If your renderer does not support Mermaid diagrams, here's a plain-text fallback:
+
+```
+Streamlit UI  -> Python Core  -> MySQL Database
+                   ^  |
+                   |  v
+                 Gemini AI (LLM)
+
+Streamlit UI: Live counters, charts, chat
+Python Core: Aggregations, scoring, live math
+MySQL DB: Source of truth (validated data)
+Gemini AI: Interpretation & reasoning only (no data generation)
+```
 
 
 ---
