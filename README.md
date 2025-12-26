@@ -61,21 +61,6 @@ flowchart TD
     AI --> Core
 ```
 
-If your renderer does not support Mermaid diagrams, here's a plain-text fallback:
-
-```
-Streamlit UI  -> Python Core  -> MySQL Database
-                   ^  |
-                   |  v
-                 Gemini AI (LLM)
-
-Streamlit UI: Live counters, charts, chat
-Python Core: Aggregations, scoring, live math
-MySQL DB: Source of truth (validated data)
-Gemini AI: Interpretation & reasoning only (no data generation)
-```
-
-
 ---
 
 ## 🌍 Application Pages
