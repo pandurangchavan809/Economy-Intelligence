@@ -185,17 +185,6 @@ Every **January 1st**:
 
 ---
 
-## ⚙️ Strategic Engineering Decisions
-
-### Why not direct IMF APIs?
-- SDMX APIs are unstable and rate-limited
-
-**Solution**
-- IMF WEO CSV ingestion → MySQL
-- Deterministic, auditable, reproducible
-
----
-
 ## 📈 Machine Learning
 
 - **Economic Health Score (0–100)**
@@ -209,7 +198,7 @@ Every **January 1st**:
 
 ## 🔐 Security & Configuration
 
-- Secrets stored in `.env` (never committed)
+- Secrets stored in `.env`
 - `.env.example` for documentation
 - Role-based auth scaffold (user/admin)
 - Database-first reads for stability
@@ -240,3 +229,4 @@ It is a **foundational economic intelligence system** designed to scale into:
 
 **AI Economics Dashboard**  
 _Where data becomes understanding._
+
