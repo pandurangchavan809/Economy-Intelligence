@@ -186,8 +186,8 @@
 
 
 
-
 import streamlit as st
+# REMOVED: st_autorefresh (Replaced with Fragments)
 
 from utils.db import fetch_df
 from utils.aggregations import (
@@ -217,8 +217,8 @@ st.markdown("## 🌍 Continent Intelligence")
 st.markdown("Live macroeconomic overview by continent")
 st.markdown("---")
 
-# ---------------- LOAD DATA (Runs once) ----------------
-# This runs only ONCE when the user opens the page.
+# ---------------- LOAD DATA ----------------
+# We load this once (static) so the DB isn't hit every second
 df = get_all_continent_core(BASE_YEAR, CURRENT_YEAR)
 
 # Population growth map
@@ -236,157 +236,135 @@ pop_growth_map = dict(zip(
 ))
 
 # ---------------- FRAGMENT 1: OVERVIEW TABLE ----------------
-# This isolated function runs every 1 second without reloading the page.
+# We wrap the table logic in a fragment function
 @st.fragment(run_every="1s")
 def render_live_table(data_df, growth_map):
     st.markdown("### 📊 Continents Overview")
     rows = []
-    
-    # We iterate through the dataframe passed to us
+
     for _, r in data_df.iterrows():
         # Calculate live values locally
-        live_gdp = live_continent_nominal_value(
-            r['continent_code'], 
-            r['gdp_usd'], 
-            r['real_growth'], 
-            r['inflation'], 
-            BASE_YEAR
+        live_gdp_trillion = live_continent_nominal_value(
+            r['continent_code'],
+            r['gdp_usd'],          # stored in BILLIONS
+            r['real_growth'],
+            r['inflation'],
+            BASE_YEAR,
         )
-        live_pop = live_continent_population_value(
-            r['continent_code'], 
-            r['population'], 
-            growth_map.get(r['continent_code'], 0), 
-            BASE_YEAR
+
+        live_population = live_continent_population_value(
+            r['continent_code'],
+            r['population'],
+            growth_map.get(r['continent_code'], 0),
+            BASE_YEAR,
         )
 
         rows.append({
             "Continent": r['continent_name'],
-            "GDP (Live)": format_trillion_live(live_gdp),
-            "Population": format_number(live_pop),
+            "GDP (Live)": format_trillion_live(live_gdp_trillion),
+            "Population": format_number(live_population),
             "Real Growth": format_percent(r['real_growth']),
             "Inflation": format_percent(r['inflation']),
             "Trade Balance": format_trillions_raw(r['trade_balance_usd']),
         })
-    
+
     st.dataframe(rows, use_container_width=True, hide_index=True)
 
-# Call the table fragment
+# CALL THE FRAGMENT
 render_live_table(df, pop_growth_map)
 
 
-# ---------------- SELECT CONTINENT (Static) ----------------
-# This part is OUTSIDE the fragment, so the dropdown doesn't flicker/reset.
+# ---------------- CONTINENT SELECT ----------------
 st.markdown("---")
 
 continent_map = dict(zip(df.continent_name, df.continent_code))
 selected = st.selectbox("Select Continent", df.continent_name.tolist())
 code = continent_map[selected]
 
+# ---------------- CONTINENT DETAIL ----------------
+# Fetch the specific row
+detail_series = get_continent_detail(code, BASE_YEAR).iloc[0]
 
-# ---------------- PREPARE DATA FOR DETAIL VIEW ----------------
-# Fetch the detail row once when selection changes
-detail_res = get_continent_detail(code, BASE_YEAR)
+# CRITICAL FIX: Convert Pandas Series to Dictionary to prevent KeyError
+detail = detail_series.to_dict() 
+pop_growth = pop_growth_map.get(code, 0)
+nominal_growth = detail['real_growth'] + detail['inflation']
 
-if not detail_res.empty:
-    row = detail_res.iloc[0]
-    
-    # CRITICAL FIX: Convert Pandas Row to a simple Dictionary.
-    # This prevents the "KeyError" / "AttributeError" inside the fragment.
-    detail_dict = {
-        'code': row['continent_code'],
-        'name': row['continent_name'],
-        'gdp_usd': row['gdp_usd'],
-        'real_growth': row['real_growth'],
-        'inflation': row['inflation'],
-        'population': row['population'],
-        'gdp_per_capita_usd': row['gdp_per_capita_usd']
-    }
-    
-    selected_growth_rate = pop_growth_map.get(code, 0)
-    nominal_growth = detail_dict['real_growth'] + detail_dict['inflation']
+# ---------------- FRAGMENT 2: LIVE DETAIL HEADER ----------------
+@st.fragment(run_every="1s")
+def render_live_detail(d, p_growth):
+    # Use dictionary syntax d['key'] instead of d.key
+    live_gdp_trillion = live_continent_nominal_value(
+        d['continent_code'],
+        d['gdp_usd'],
+        d['real_growth'],
+        d['inflation'],
+        BASE_YEAR,
+    )
 
+    live_population = live_continent_population_value(
+        d['continent_code'],
+        d['population'],
+        p_growth,
+        BASE_YEAR,
+    )
 
-    # ---------------- FRAGMENT 2: LIVE DETAIL HEADER ----------------
-    # This updates the big numbers every second.
-    @st.fragment(run_every="1s")
-    def render_live_detail(d, growth_rate):
-        # Calculate live values
-        live_gdp_trillion = live_continent_nominal_value(
-            d['code'],
-            d['gdp_usd'],
-            d['real_growth'],
-            d['inflation'],
-            BASE_YEAR,
-        )
+    st.markdown(f"## 🌍 {d['continent_name']} — Live Economy")
+    st.caption(f"From Jan 1, {CURRENT_YEAR} up to now (current USD)")
 
-        live_population = live_continent_population_value(
-            d['code'],
-            d['population'],
-            growth_rate,
-            BASE_YEAR,
-        )
-
-        st.markdown(f"## 🌍 {d['name']} — Live Economy")
-        st.caption(f"From Jan 1, {CURRENT_YEAR} up to now (current USD)")
-
-        st.markdown(
-            f"""
-            <h1 style="text-align:center">
-                {format_trillion_live(live_gdp_trillion)}
-            </h1>
-            <p style="text-align:center;color:gray">
-                Source: IMF World Economic Outlook (Nominal GDP – Live Projection)
-            </p>
-            """,
-            unsafe_allow_html=True,
-        )
-        
-        # We also put the Live Population metrics inside here so they update too
-        st.markdown("---")
-        st.markdown("### 👥 Population")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Population (Live)", format_number(live_population))
-        c2.metric("GDP per Capita", f"${d['gdp_per_capita_usd']:,.0f}")
-        c3.metric("Population Growth", format_percent(growth_rate))
-
-    # Call the detail fragment
-    render_live_detail(detail_dict, selected_growth_rate)
-
-
-    # ---------------- STATIC METRICS (Below the fragment) ----------------
-    # These do not need to update every second, so they stay outside.
-    st.markdown("---")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Real Growth", format_percent(detail_dict['real_growth']))
-    c2.metric("Inflation", format_percent(detail_dict['inflation']))
-    c3.metric("Nominal Growth", format_percent(nominal_growth))
-    c4.metric("Base GDP (2024)", format_trillions_from_billions(detail_dict['gdp_usd']))
-
-
-    # ---------------- TRADE (Static) ----------------
-    st.markdown("---")
-    st.markdown("### 🌐 Trade")
-
-    trade_df = fetch_df(
-        """
-        SELECT exports_usd, imports_usd, trade_balance_usd
-        FROM continent_trade
-        WHERE continent_code = %s AND year = %s
+    st.markdown(
+        f"""
+        <h1 style="text-align:center">
+            {format_trillion_live(live_gdp_trillion)}
+        </h1>
+        <p style="text-align:center;color:gray">
+            Source: IMF World Economic Outlook (Nominal GDP – Live Projection)
+        </p>
         """,
-        (code, CURRENT_YEAR),
+        unsafe_allow_html=True,
     )
     
-    if not trade_df.empty:
-        trade = trade_df.iloc[0]
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Exports", format_trillions_raw(trade['exports_usd']))
-        c2.metric("Imports", format_trillions_raw(trade['imports_usd']))
-        c3.metric("Trade Balance", format_trillions_raw(trade['trade_balance_usd']))
-    else:
-        st.info("Trade data not available for this year.")
+    # We include Population Live here too so it updates
+    st.markdown("---")
+    st.markdown("### 👥 Population")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Population (Live)", format_number(live_population))
+    c2.metric("GDP per Capita", f"${d['gdp_per_capita_usd']:,.0f}")
+    c3.metric("Population Growth", format_percent(p_growth))
 
-else:
-    st.error("No data found for the selected continent.")
+# CALL THE DETAIL FRAGMENT
+render_live_detail(detail, pop_growth)
+
+# ---------------- GROWTH METRICS (Static) ----------------
+# These stay outside the fragment (Standard Streamlit)
+st.markdown("---")
+
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Real Growth", format_percent(detail['real_growth']))
+c2.metric("Inflation", format_percent(detail['inflation']))
+c3.metric("Nominal Growth", format_percent(nominal_growth))
+c4.metric("Base GDP (2024)", format_trillions_from_billions(detail['gdp_usd']))
+
+# ---------------- TRADE (Static) ----------------
+st.markdown("---")
+st.markdown("### 🌐 Trade")
+
+trade = fetch_df(
+    """
+    SELECT exports_usd, imports_usd, trade_balance_usd
+    FROM continent_trade
+    WHERE continent_code = %s AND year = %s
+    """,
+    (code, CURRENT_YEAR),
+).iloc[0]
+
+# Convert trade to dict as well just to be safe/consistent
+t = trade.to_dict()
+
+c1, c2, c3 = st.columns(3)
+c1.metric("Exports", format_trillions_raw(t['exports_usd']))
+c2.metric("Imports", format_trillions_raw(t['imports_usd']))
+c3.metric("Trade Balance", format_trillions_raw(t['trade_balance_usd']))
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
@@ -404,4 +382,3 @@ st.caption(
     © Economy Intelligence Platform
     """
 )
-
