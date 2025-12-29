@@ -187,10 +187,7 @@
 
 
 
-
 import streamlit as st
-# REMOVED st_autorefresh to stop full page reloads
-# We use st.fragment instead for instant updates
 
 from utils.db import fetch_df
 from utils.aggregations import (
@@ -407,3 +404,4 @@ st.caption(
     © Economy Intelligence Platform
     """
 )
+
