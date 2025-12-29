@@ -7,7 +7,6 @@ import streamlit as st
 import google.generativeai as genai
 # from dotenv import load_dotenv   for cloud
 
-# --- 1. CORE SETUP ---
 # load_dotenv()  .....for cloud run
 
 st.set_page_config(page_title="AI Economics Dashboard", layout="wide")
