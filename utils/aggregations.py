@@ -197,5 +197,3 @@ def get_continent_detail(code, year):
 
 
 
-## country
-
