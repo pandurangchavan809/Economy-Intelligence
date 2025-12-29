@@ -5,17 +5,24 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 import google.generativeai as genai
-from dotenv import load_dotenv
+# from dotenv import load_dotenv   for cloud
 
 # --- 1. CORE SETUP ---
-load_dotenv()
-# REQUESTED CHANGE: Updated Page Name
+# load_dotenv()  .....for cloud run
+
 st.set_page_config(page_title="AI Economics Dashboard", layout="wide")
 
-# API Configuration
-API_KEY = os.getenv("GEMINI_API_KEY")
-if not API_KEY:
-    st.error("🚨 API Key not found. Please check your .env file.")
+# API Configuration  for local
+# API_KEY = os.getenv("GEMINI_API_KEY")
+# if not API_KEY:
+#     st.error("🚨 API Key not found. Please check your .env file.")
+#     st.stop()
+
+# API configuration for cloud
+if "GEMINI_API_KEY" in st.secrets:
+    API_KEY = st.secrets["GEMINI_API_KEY"]
+else:
+    st.error("🚨 API Key not found in Secrets. Please add GEMINI_API_KEY to your Streamlit Settings.")
     st.stop()
 
 genai.configure(api_key=API_KEY)
