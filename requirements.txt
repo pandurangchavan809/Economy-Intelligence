@@ -11,11 +11,7 @@ plotly
 google-generativeai
 streamlit-autorefresh
 sqlalchemy
-mysqlclient
 
-# requests
-# requests-oauthlib
-# sqlalchemy
-# pymysql      
+
 # activate venv : .\venv\Scripts\Activate.ps1
 
