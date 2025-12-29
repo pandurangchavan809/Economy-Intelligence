@@ -593,7 +593,7 @@ def get_pct_shares(country_id, iso3, continent_code, year):
 
 # ----------------- PAGE -----------------
 st.title("🌐 Country Intelligence")
-st.caption("Live snapshot — GDP, population, trade and more (values update every second)")
+st.caption("Live snapshot — Values update every second")
 st.markdown("---")
 
 # selector
@@ -601,7 +601,7 @@ countries_df = get_country_list()
 labels = [f"{r['name']} ({r['iso3']})" if r['iso3'] else r['name'] for _, r in countries_df.iterrows()]
 id_map = {labels[i]: int(countries_df.iloc[i]["country_id"]) for i in range(len(labels))}
 
-# Finding the default index for India (IND) if it exists
+# FIX: Set India (IND) as default index
 default_idx = 0
 for i, label in enumerate(labels):
     if "(IND)" in label:
@@ -617,36 +617,20 @@ if meta.empty:
     st.error("Country metadata missing.")
     st.stop()
 meta = meta.iloc[0]
-country_name = meta["name"]
-iso3 = meta["iso3"]
-flag_url = meta["flag_url"]
-capital = meta["capital"]
-continent_code = meta["continent_code"]
 
 # header row
 c1, c2 = st.columns([1, 6])
-if flag_url:
-    c1.image(flag_url, width=96)
-c2.header(f"{country_name} — Live Overview")
-c2.caption(f"Capital: {capital or '—'} · ISO3: {iso3 or '—'} · Continent: {meta.get('continent') or '—'}")
+if meta["flag_url"]:
+    c1.image(meta["flag_url"], width=96)
+c2.header(f"{meta['name']} — Live Overview")
+c2.caption(f"Capital: {meta['capital'] or '—'} · ISO3: {meta['iso3'] or '—'} · Continent: {meta.get('continent') or '—'}")
 st.markdown("---")
 
-# Indicators - Pulled once here to feed into the Live Fragment
+# Data fetch for Fragment
 ind = fetch_latest_indicator_by_country(country_id, prefer_years=[BASE_YEAR, BASE_YEAR-1, BASE_YEAR-2])
-gdp = ind.get("gdp")
-gdp_year = ind.get("year")
-real_growth = ind.get("gdp_growth")
-inflation = ind.get("inflation")
-unemployment = ind.get("unemployment")
-military_spending = ind.get("military_spending") or ind.get("military")
-debt_gdp = ind.get("debt_gdp") or ind.get("debt_to_gdp")
-exchange_rate = ind.get("exchange_rate")
-ind_population = ind.get("population")
-
 pop_val, pop_year = get_country_population(country_id, year_prefer=BASE_YEAR)
-if pop_val is None and ind_population:
-    pop_val = int(ind_population); pop_year = ind.get("year")
-
+if pop_val is None and ind.get("population"):
+    pop_val = int(ind.get("population")); pop_year = ind.get("year")
 pop_growth_rate = get_population_growth_rate(country_id, CURRENT_YEAR)
 
 # ----------------- LIVE METRICS FRAGMENT -----------------
