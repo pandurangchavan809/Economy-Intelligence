@@ -7,3 +7,4 @@ def fetch_df(query, params=None):
     df = pd.read_sql(query, conn, params=params)
     conn.close()
     return df
+
