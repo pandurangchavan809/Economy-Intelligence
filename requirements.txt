@@ -1,4 +1,4 @@
-# activate venv :- .\venv\Scripts\Activate.ps1
+# activate venv : .\venv\Scripts\Activate.ps1
 streamlit
 mysql-connector-python
 requests
