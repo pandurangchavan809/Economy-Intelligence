@@ -1,4 +1,3 @@
-# activate venv : .\venv\Scripts\Activate.ps1
 streamlit
 mysql-connector-python
 requests
@@ -9,14 +8,13 @@ matplotlib
 seaborn
 scikit-learn
 plotly
-autorefresh
-
-python-dotenv
 google-generativeai
+streamlit-autorefresh
 
-requests
-requests-oauthlib
-sqlalchemy
-pymysql      
 
+# requests
+# requests-oauthlib
+# sqlalchemy
+# pymysql      
+# activate venv : .\venv\Scripts\Activate.ps1
 
