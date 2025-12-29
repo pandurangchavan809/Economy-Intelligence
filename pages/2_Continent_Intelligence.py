@@ -186,7 +186,6 @@
 
 
 
-
 import streamlit as st
 from datetime import datetime, UTC # Prevent deprecation warnings
 
@@ -264,16 +263,17 @@ def render_continent_table():
 @st.fragment(run_every="1s")
 def render_continent_detail(detail_data, growth_rate):
     """Renders the large central counter for the selected continent"""
-    code = detail_data.continent_code
+    # FIX: Use bracket notation for Series access
+    code = detail_data['continent_code']
     
     live_gdp = live_continent_nominal_value(
-        code, detail_data.gdp_usd, detail_data.real_growth, detail_data.inflation, BASE_YEAR
+        code, detail_data['gdp_usd'], detail_data['real_growth'], detail_data['inflation'], BASE_YEAR
     )
     live_pop = live_continent_population_value(
-        code, detail_data.population, growth_rate, BASE_YEAR
+        code, detail_data['population'], growth_rate, BASE_YEAR
     )
 
-    st.markdown(f"## 🌍 {detail_data.continent_name} — Live Economy")
+    st.markdown(f"## 🌍 {detail_data['continent_name']} — Live Economy")
     st.caption(f"From Jan 1, {CURRENT_YEAR} up to now (current USD)")
     st.markdown(
         f"""
@@ -290,7 +290,7 @@ def render_continent_detail(detail_data, growth_rate):
     st.markdown("### 👥 Population")
     c1, c2, c3 = st.columns(3)
     c1.metric("Population (Live)", format_number(live_pop))
-    c2.metric("GDP per Capita", f"${detail_data.gdp_per_capita_usd:,.0f}")
+    c2.metric("GDP per Capita", f"${detail_data['gdp_per_capita_usd']:,.0f}")
     c3.metric("Population Growth", format_percent(growth_rate))
 
 # ---------------- MAIN PAGE FLOW ----------------
@@ -305,33 +305,41 @@ selected = st.selectbox("Select Continent", df.continent_name.tolist())
 code = continent_map[selected]
 
 # 3. Static detail fetch (runs only when selection changes)
-detail = get_continent_detail(code, BASE_YEAR).iloc[0]
-pop_growth = pop_growth_map.get(code, 0)
-nominal_growth = detail.real_growth + detail.inflation
+detail_result = get_continent_detail(code, BASE_YEAR)
+if not detail_result.empty:
+    detail = detail_result.iloc[0]
+    pop_growth = pop_growth_map.get(code, 0)
+    nominal_growth = detail['real_growth'] + detail['inflation']
 
-# 4. Show the animated detail fragment
-render_continent_detail(detail, pop_growth)
+    # 4. Show the animated detail fragment
+    render_continent_detail(detail, pop_growth)
 
-# 5. Static Growth Metrics
-st.markdown("---")
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Real Growth", format_percent(detail.real_growth))
-c2.metric("Inflation", format_percent(detail.inflation))
-c3.metric("Nominal Growth", format_percent(nominal_growth))
-c4.metric("Base GDP (2024)", format_trillions_from_billions(detail.gdp_usd))
+    # 5. Static Growth Metrics
+    st.markdown("---")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Real Growth", format_percent(detail['real_growth']))
+    c2.metric("Inflation", format_percent(detail['inflation']))
+    c3.metric("Nominal Growth", format_percent(nominal_growth))
+    c4.metric("Base GDP (2024)", format_trillions_from_billions(detail['gdp_usd']))
 
-# 6. Trade (Static)
-st.markdown("---")
-st.markdown("### 🌐 Trade")
-trade = fetch_df(
-    "SELECT exports_usd, imports_usd, trade_balance_usd FROM continent_trade WHERE continent_code = %s AND year = %s",
-    (code, CURRENT_YEAR),
-).iloc[0]
-
-t1, t2, t3 = st.columns(3)
-t1.metric("Exports", format_trillions_raw(trade.exports_usd))
-t2.metric("Imports", format_trillions_raw(trade.imports_usd))
-t3.metric("Trade Balance", format_trillions_raw(trade.trade_balance_usd))
+    # 6. Trade (Static)
+    st.markdown("---")
+    st.markdown("### 🌐 Trade")
+    trade_df = fetch_df(
+        "SELECT exports_usd, imports_usd, trade_balance_usd FROM continent_trade WHERE continent_code = %s AND year = %s",
+        (code, CURRENT_YEAR),
+    )
+    
+    if not trade_df.empty:
+        trade = trade_df.iloc[0]
+        t1, t2, t3 = st.columns(3)
+        t1.metric("Exports", format_trillions_raw(trade['exports_usd']))
+        t2.metric("Imports", format_trillions_raw(trade['imports_usd']))
+        t3.metric("Trade Balance", format_trillions_raw(trade['trade_balance_usd']))
+    else:
+        st.info("Trade data not available for this continent and year.")
+else:
+    st.error(f"No detail data found for continent code: {code}")
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
