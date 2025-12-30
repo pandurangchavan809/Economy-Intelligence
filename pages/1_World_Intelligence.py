@@ -20,18 +20,18 @@ from utils.aggregations import (
     get_global_trade,
 )
 
-# ---------------- CONFIG ----------------
+# ::::::::::::::::::: CONFIG ::::::::::::::::::::::::::::::::::::::::::::
 st.set_page_config(layout="wide")
 
 # Modern way to get the year without DeprecationWarnings
 CURRENT_YEAR = datetime.now(UTC).year 
 BASE_YEAR = CURRENT_YEAR - 1
 
-# ---------------- HEADER ----------------
+#================= Header ===================================
 st.markdown("## 🌍 World Intelligence Hub")
 st.markdown("**Live global economic overview**")
 
-# ---------------- DB DATA (Runs once) ----------------
+# ---------------- DB DATA ----------------
 # These fetch data from Aiven only once per session
 world_gdp_base = get_world_nominal_gdp(BASE_YEAR)
 global_growth = get_world_real_growth(CURRENT_YEAR)
@@ -40,7 +40,7 @@ world_population_base = get_world_population(BASE_YEAR)
 population_growth = get_world_population_growth(CURRENT_YEAR)
 exports, imports, trade_balance = get_global_trade(BASE_YEAR)
 
-# ---------------- FRAGMENTS ----------------
+#::::::::------------ FRAGMENTS :::::---------------------
 
 @st.fragment(run_every="1s")
 def render_live_gdp():
@@ -84,7 +84,7 @@ def render_live_population(gdp_live):
     c6.metric("Population Growth", f"{population_growth:.2f}%")
     c7.metric("GDP per Capita (Live)", format_currency(gdp_per_capita_live))
 
-# ---------------- DISPLAY ----------------
+#::::------------ Display-------------::::::
 
 # Execute fragments
 current_live_gdp = render_live_gdp()
@@ -106,6 +106,8 @@ ct1.metric("Global Exports", format_trillions(exports))
 ct2.metric("Global Imports", format_trillions(imports))
 ct3.metric("Trade Balance", format_trillions(trade_balance), 
            delta="Surplus" if trade_balance > 0 else "Deficit")
+
+#::::::::::::::::::::::: Footer :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 st.markdown("---")
 st.caption("**Sources:** IMF WEO · World Bank · National Statistical Agencies")

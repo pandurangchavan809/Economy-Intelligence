@@ -17,20 +17,19 @@ from utils.live_counter import (
     live_continent_population_value,
 )
 
-# ---------------- CONFIG ----------------
+
 st.set_page_config(layout="wide")
 
 CURRENT_YEAR = 2025
 BASE_YEAR = 2024
 
-# ---------------- HEADER ----------------
+#header
 st.markdown("## 🌍 Continent Intelligence")
 st.markdown("Live macroeconomic overview by continent")
 st.markdown("---")
 
-# ---------------- LOAD DATA ----------------
+#loading data
 df = get_all_continent_core(BASE_YEAR, CURRENT_YEAR)
-# Force column names to lowercase to prevent KeyErrors
 df.columns = [c.lower() for c in df.columns]
 
 # population growth map
@@ -48,14 +47,14 @@ pop_growth_map = dict(zip(
     pop_growth_df.growth_rate
 ))
 
-# ---------------- FRAGMENT 1: OVERVIEW TABLE ----------------
+#FRAGMENT 1: OVERVIEW TABLE
 @st.fragment(run_every="1s")
 def render_live_table(data_df, growth_map):
     st.markdown("### 📊 Continents Overview")
     rows = []
 
     for _, r in data_df.iterrows():
-        # Use .get() to safely access keys
+
         c_code = r.get('continent_code')
         
         live_gdp_trillion = live_continent_nominal_value(
@@ -82,35 +81,33 @@ def render_live_table(data_df, growth_map):
             "Trade Balance": format_trillions_raw(r.get('trade_balance_usd', 0)),
         })
 
-    # Fix for 2026 Deprecation: use_container_width -> width="stretch"
     st.dataframe(rows, width="stretch", hide_index=True)
 
 # Call the fragment
 render_live_table(df, pop_growth_map)
 
-# ---------------- CONTINENT SELECT ----------------
+#Continent select :-
 st.markdown("---")
 
-# Use lowercase keys for the map
 continent_map = dict(zip(df.continent_name, df.continent_code))
 selected = st.selectbox("Select Continent", df.continent_name.tolist())
 code = continent_map[selected]
 
-# ---------------- CONTINENT DETAIL ----------------
+#CONTINENT DETAIL
 detail_query = get_continent_detail(code, BASE_YEAR)
 detail_query.columns = [c.lower() for c in detail_query.columns]
 detail_series = detail_query.iloc[0]
 
-# Convert to dict and ensure keys are stable
+#Convert to dict and ensure keys are stable
 detail = detail_series.to_dict()
 
 pop_growth = pop_growth_map.get(code, 0)
 nominal_growth = detail.get('real_growth', 0) + detail.get('inflation', 0)
 
-# ---------------- FRAGMENT 2: LIVE DETAIL HEADER ----------------
+#FRAGMENT 2: LIVE DETAIL HEADER
 @st.fragment(run_every="1s")
 def render_live_detail(d, p_growth):
-    # Use .get() to handle any potential missing keys during refresh
+    # .get() to handle any potential missing keys during refresh
     c_code = d.get('continent_code')
     
     live_gdp_trillion = live_continent_nominal_value(
@@ -151,10 +148,10 @@ def render_live_detail(d, p_growth):
     c2.metric("GDP per Capita", f"${d.get('gdp_per_capita_usd', 0):,.0f}")
     c3.metric("Population Growth", format_percent(p_growth))
 
-# Call the fragment
+# Call fragment
 render_live_detail(detail, pop_growth)
 
-# ---------------- GROWTH METRICS (Static) ----------------
+#GROWTH METRICS (Static) -
 st.markdown("---")
 
 c1, c2, c3, c4 = st.columns(4)
@@ -163,7 +160,7 @@ c2.metric("Inflation", format_percent(detail.get('inflation', 0)))
 c3.metric("Nominal Growth", format_percent(nominal_growth))
 c4.metric("Base GDP (2024)", format_trillions_from_billions(detail.get('gdp_usd', 0)))
 
-# ---------------- TRADE (Static) ----------------
+# TRADE -
 st.markdown("---")
 st.markdown("### 🌐 Trade")
 
@@ -183,6 +180,6 @@ c1.metric("Exports", format_trillions_raw(trade.get('exports_usd', 0)))
 c2.metric("Imports", format_trillions_raw(trade.get('imports_usd', 0)))
 c3.metric("Trade Balance", format_trillions_raw(trade.get('trade_balance_usd', 0)))
 
-# ---------------- FOOTER ----------------
+# ---------------- FOOTER --------------------------------------------------------------
 st.markdown("---")
 st.caption("© Economy Intelligence Platform")

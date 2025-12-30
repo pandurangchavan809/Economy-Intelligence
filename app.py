@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 import google.generativeai as genai
+
 # from dotenv import load_dotenv   ## avoid for cloud
 
 # load_dotenv()  ##.....avoid for cloud run
@@ -17,7 +18,8 @@ st.set_page_config(page_title="AI Economics Dashboard", layout="wide")
 #     st.error("🚨 API Key not found. Please check your .env file.")
 #     st.stop()
 
-# API configuration for cloud
+# API configuration for cloud :-----
+
 if "GEMINI_API_KEY" in st.secrets:
     API_KEY = st.secrets["GEMINI_API_KEY"]
 else:
@@ -36,7 +38,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. DATA ENGINE (10-Year History) ---
+#2. DATA ENGINE (10-Year History) :-
 @st.cache_data(ttl=3600)
 def fetch_historical_intel(country):
     """Generates 10 years of data (2015-2025) with proper scaling."""
@@ -68,7 +70,7 @@ def fetch_historical_intel(country):
         st.error(f"Error fetching data: {e}")
         return None
 
-# --- 3. UI LAYOUT ---
+#3. UI LAYOUT :
 st.title("📊 AI Economics Dashboard")
 st.caption(f"Engine: {MODEL_ID.upper()} | Timeline: 2015 — 2025")
 
@@ -79,7 +81,7 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
-# --- 4. VISUALIZATION ENGINE ---
+# ---:::: 4. VISUALIZATION ENGINE -----::::
 data_package = fetch_historical_intel(selected_country)
 
 if data_package:
@@ -89,7 +91,7 @@ if data_package:
     col1, col2 = st.columns(2)
 
     with col1:
-        # GDP Graph - Clean Area-Line
+        # GDP Graph
         st.subheader("Total GDP (Billions USD)")
         fig_gdp = px.line(df, x='year', y='gdp', markers=True, 
                           template="plotly_dark", line_shape='spline')
@@ -104,10 +106,8 @@ if data_package:
         st.plotly_chart(fig_un, use_container_width=True)
 
     with col2:
-        # REQUESTED CHANGE: Clean and Thin Bar Graph for Inflation
         st.subheader("Inflation Rate (%)")
         fig_inf = px.bar(df, x='year', y='inflation', template="plotly_dark")
-        # 'width' set to 0.4 makes the bars thin and clean
         fig_inf.update_traces(marker_color='#ff4b4b', width=0.4, marker_line_width=0)
         fig_inf.update_layout(bargap=0.2, margin=dict(l=20, r=20, t=20, b=20))
         st.plotly_chart(fig_inf, use_container_width=True)
@@ -132,3 +132,9 @@ if prompt := st.chat_input(f"Ask about {selected_country}'s fiscal policy..."):
         response = genai.GenerativeModel(MODEL_ID).generate_content(f"Analyze {selected_country}: {prompt}")
         st.markdown(response.text)
         st.session_state.messages.append({"role": "assistant", "content": response.text})
+
+
+
+
+
+        

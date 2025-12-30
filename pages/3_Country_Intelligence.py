@@ -5,7 +5,7 @@ from utils.db import fetch_df
 from utils.formatters import format_number, format_percent
 from utils.live_counter import live_nominal_value, live_population_value
 
-# ---------------- CONFIG ----------------
+#::::::::::------------------ CONFIG --------------:::::::::::::::::
 st.set_page_config(layout="wide", page_title="Country Intelligence")
 
 # Use timezone-aware UTC
@@ -13,7 +13,7 @@ CURRENT_YEAR = datetime.now(timezone.utc).year
 # stored base-year rows (e.g. 2024) are treated as Jan 1, stored_year + 1
 BASE_YEAR = CURRENT_YEAR - 1
 
-# ----------------- SMALL SQL HELPERS -----------------
+# --------::::::::::: Small SQL Helpers ::::::::::::::::::---------
 def table_has_column(table_name: str, column_name: str) -> bool:
     q = """
     SELECT COUNT(*) FROM information_schema.COLUMNS
@@ -129,12 +129,12 @@ def get_pct_shares(country_id, iso3, continent_code, year):
                     
     return pct_cont, pct_world
 
-# ----------------- PAGE START -----------------
+# ----------------- PAGE START ---------------------------------------------------------------
 st.title("🌐 Country Intelligence")
 st.caption("Live snapshot — Real-time values calculated locally")
 st.markdown("---")
 
-# 1. Selector (Static)
+# 1. Selector (static)----
 countries_df = get_country_list()
 labels = [f"{r['name']} ({r['iso3']})" if r['iso3'] else r['name'] for _, r in countries_df.iterrows()]
 id_map = {labels[i]: int(countries_df.iloc[i]["country_id"]) for i in range(len(labels))}
@@ -149,14 +149,14 @@ for i, label in enumerate(labels):
 selected = st.selectbox("Search / select a country", labels, index=default_idx)
 country_id = id_map[selected]
 
-# 2. Fetch Metadata (Static)
+#2.Fetch Metadata (Static) :-
 meta_df = fetch_df("SELECT country_id,name,iso2,iso3,capital,continent,continent_code,flag_url FROM countries WHERE country_id=%s LIMIT 1", (country_id,))
 if meta_df.empty:
     st.error("Country metadata missing.")
     st.stop()
 meta = meta_df.iloc[0]
 
-# header row
+#header row
 c1, c2 = st.columns([1, 6])
 if meta["flag_url"]:
     c1.image(meta["flag_url"], width=96)
@@ -164,7 +164,7 @@ c2.header(f"{meta['name']} — Live Overview")
 c2.caption(f"Capital: {meta['capital'] or '—'} · ISO3: {meta['iso3'] or '—'} · Continent: {meta.get('continent') or '—'}")
 st.markdown("---")
 
-# 3. Data Extraction for calculations
+#3.Data Extraction for calculations
 ind = fetch_latest_indicator_by_country(country_id, prefer_years=[BASE_YEAR, BASE_YEAR-1, BASE_YEAR-2])
 pop_val, pop_year = get_country_population(country_id, year_prefer=BASE_YEAR)
 if pop_val is None and ind.get("population"):
@@ -172,8 +172,9 @@ if pop_val is None and ind.get("population"):
     pop_year = ind.get("year")
 pop_growth_rate = get_population_growth_rate(country_id, CURRENT_YEAR)
 
-# ----------------- LIVE FRAGMENT -----------------
-# This part updates every second without reloading the whole page or DB queries
+#.....Live Fragments...........
+# This part updates every second without reloading the whole page or DB queries as implementing fragments......
+
 @st.fragment(run_every="1s")
 def render_live_metrics(indicator_dict, p_val, p_year, p_growth):
     # Population calculation
@@ -212,10 +213,10 @@ def render_live_metrics(indicator_dict, p_val, p_year, p_growth):
     k3.metric("GDP per Capita (Live)", gdp_pc_display)
     k4.metric("Population growth", format_percent(p_growth) if p_growth is not None else "Not available")
 
-# Run fragment
+#call frag.
 render_live_metrics(ind, pop_val, pop_year, pop_growth_rate)
 
-# ----------------- STATIC REMAINDER -----------------
+#---- STATIC REMAINDER ---
 st.markdown("---")
 k5, k6, k7, k8 = st.columns([2,2,2,2])
 k5.metric("Real GDP growth", format_percent(ind.get("gdp_growth")))
@@ -266,6 +267,7 @@ s1.metric("Share of continent", format_percent(pct_cont) if pct_cont is not None
 s2.metric("Share of world", format_percent(pct_world) if pct_world is not None else "Not available")
 s3.metric("Unemployment Rate", format_percent(ind.get("unemployment")) if ind.get("unemployment") is not None else "Not available")
 
+#----------------- Footer-----------------------------
 st.markdown("---")
 st.markdown(
     f"""
