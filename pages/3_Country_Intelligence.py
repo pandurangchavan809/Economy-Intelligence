@@ -468,8 +468,6 @@
 
 import streamlit as st
 from datetime import datetime, timezone
-# NOTE: We removed st_autorefresh to stop the "blurry" page-wide flickering.
-# The live updates are now handled smoothly by @st.fragment(run_every="1s").
 
 from utils.db import fetch_df
 from utils.formatters import format_number, format_percent

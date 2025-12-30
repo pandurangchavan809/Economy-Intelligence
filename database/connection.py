@@ -13,19 +13,43 @@
 #     )
 
 
-import os
-import mysql.connector
-import streamlit as st # Import streamlit to access secrets
+# import os
+# import mysql.connector
+# import streamlit as st # Import streamlit to access secrets
 
+# def get_connection():
+#     # On Streamlit Cloud, st.secrets works like environment variables
+#     return mysql.connector.connect(
+#         host=st.secrets["DB_HOST"],
+#         user=st.secrets["DB_USER"],
+#         password=st.secrets["DB_PASSWORD"],
+#         database=st.secrets["DB_NAME"],
+#         port=int(st.secrets["DB_PORT"]) # Aiven requires port 22611
+#     )
+
+
+
+import streamlit as st
+import mysql.connector
+
+# Use st.cache_resource to keep the connection alive but refresh it regularly
+@st.cache_resource(ttl=3600) # Refreshes every 1 hour to prevent stale connections
 def get_connection():
-    # On Streamlit Cloud, st.secrets works like environment variables
-    return mysql.connector.connect(
-        host=st.secrets["DB_HOST"],
-        user=st.secrets["DB_USER"],
-        password=st.secrets["DB_PASSWORD"],
-        database=st.secrets["DB_NAME"],
-        port=int(st.secrets["DB_PORT"]) # Aiven requires port 22611
-    )
+    try:
+        conn = mysql.connector.connect(
+            host=st.secrets["DB_HOST"],
+            user=st.secrets["DB_USER"],
+            password=st.secrets["DB_PASSWORD"],
+            database=st.secrets["DB_NAME"],
+            port=int(st.secrets["DB_PORT"]),
+            connect_timeout=10 # Increase timeout to allow Aiven to wake up
+        )
+        return conn
+    except mysql.connector.Error as e:
+        st.error(f"Error connecting to MySQL: {e}")
+        return None
+    
+
 
 
 # import os
