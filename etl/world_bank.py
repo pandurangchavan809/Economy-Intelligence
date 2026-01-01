@@ -133,26 +133,28 @@ INDICATORS = {
 
 def fetch_indicator(country, indicator, retries=3):
     url = BASE_URL.format(country=country, indicator=indicator)
-    params = {
-        "format": "json",
-        "per_page": 1000,
-        "date": f"{START_YEAR}:{END_YEAR}"
-    }
+    params = {"format": "json", "per_page": 1000, "date": f"{START_YEAR}:{END_YEAR}"}
 
     for attempt in range(1, retries + 1):
         try:
-            r = requests.get(url, params=params, timeout=60)
+            r = requests.get(url, params=params, timeout=30)
+            if r.status_code != 200:
+                continue
+            
             data = r.json()
-            if not isinstance(data, list) or len(data) < 2:
-                return []
-            return data[1]
-        except requests.exceptions.ReadTimeout:
-            print(f"⏳ Timeout for {country}-{indicator} (attempt {attempt})")
-            time.sleep(2 * attempt)
+            # Check if data is a valid list with at least 2 elements
+            if isinstance(data, list) and len(data) > 1:
+                return data[1]
+            return [] # Return empty list if no data found
+            
         except Exception as e:
-            print(f"⚠️ Error for {country}-{indicator}: {e}")
-            return []
-    return []
+            if attempt == retries:
+                print(f"❌ Failed {country} after {retries} tries: {e}")
+            time.sleep(1)
+            
+    return [] # ALWAYS return a list to prevent 'NoneType' errors
+
+
 def run(progress_callback=None):
     conn = get_connection()
     if not conn:
@@ -230,4 +232,3 @@ if __name__ == "__main__":
     run()
 
 
-    
