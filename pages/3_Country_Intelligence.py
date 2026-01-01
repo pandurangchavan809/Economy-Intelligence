@@ -257,23 +257,31 @@ elif table_has_column("country_military_share", "military_spending"):
 o1.metric("Military spending (latest)", mil_display)
 debt_val = ind.get("debt_gdp") or ind.get("debt_to_gdp")
 o2.metric("Debt-to-GDP", format_percent(debt_val) if debt_val is not None else "Not available")
-# Assuming 'iso3' or 'currency_code' is available in your 'meta' or 'ind' dictionary
-# If you don't have currency_code in the DB yet, we can use a fallback mapping
-currency_code = meta.get("currency_code") or ind.get("currency_code")
+
+# --- Professional Exchange Rate Integration ---
+from utils.currency import get_exchange_rate
+
+# 1. Identify the target currency code (fallback to 'USD' if missing)
+# Ensure your 'meta' dictionary contains 'currency_code'
+currency_code = meta.get("currency_code") 
+
 if currency_code:
+    # 2. Fetch live data from your new utility
     live_rate = get_exchange_rate(currency_code)
+    
     if live_rate:
-        # Displays: 1 USD = 83.25 INR (as an example)
+        # 3. Dynamic Display: 1 USD = [Value] [Code]
         o3.metric(
             label=f"Exchange rate (USD/{currency_code})", 
             value=f"{live_rate:,.2f} {currency_code}",
-            help=f"Latest market value of 1 US Dollar in {meta['name']}"
+            help=f"Live market rate for 1 USD in {meta.get('name')}"
         )
     else:
-        o3.metric("Exchange rate (local per USD)", "Rate Unavailable")
+        o3.metric("Exchange rate (local per USD)", "API Timeout")
 else:
-    # If the database doesn't have the code, show 'Not available' as before
-    o3.metric("Exchange rate (local per USD)", "Not available")
+    # This shows if your database 'countries' table is missing the currency_code column
+    o3.metric("Exchange rate (local per USD)", "Code Missing")
+
 
 # Shares Section
 st.markdown("---")
