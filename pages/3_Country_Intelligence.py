@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from utils.db import fetch_df
 from utils.formatters import format_number, format_percent
 from utils.live_counter import live_nominal_value, live_population_value
-from utils.currency import get_exchange_rate
+from utils.currency import get_rate_by_country_name
 
 #::::::::::------------------ CONFIG --------------:::::::::::::::::
 st.set_page_config(layout="wide", page_title="Country Intelligence")
@@ -258,29 +258,22 @@ o1.metric("Military spending (latest)", mil_display)
 debt_val = ind.get("debt_gdp") or ind.get("debt_to_gdp")
 o2.metric("Debt-to-GDP", format_percent(debt_val) if debt_val is not None else "Not available")
 
-# --- Professional Exchange Rate Integration ---
-from utils.currency import get_exchange_rate
+# Use the name you already have (e.g., "India", "Brazil")
+country_name = meta.get("name") 
 
-# 1. Identify the target currency code (fallback to 'USD' if missing)
-# Ensure your 'meta' dictionary contains 'currency_code'
-currency_code = meta.get("currency_code") 
-
-if currency_code:
-    # 2. Fetch live data from your new utility
-    live_rate = get_exchange_rate(currency_code)
+if country_name:
+    rate, code = get_rate_by_country_name(country_name)
     
-    if live_rate:
-        # 3. Dynamic Display: 1 USD = [Value] [Code]
+    if rate:
         o3.metric(
-            label=f"Exchange rate (USD/{currency_code})", 
-            value=f"{live_rate:,.2f} {currency_code}",
-            help=f"Live market rate for 1 USD in {meta.get('name')}"
+            label=f"Exchange rate (USD/{code})", 
+            value=f"{rate:,.2f} {code}",
+            help=f"Live rate for 1 USD in {country_name}"
         )
     else:
-        o3.metric("Exchange rate (local per USD)", "API Timeout")
+        o3.metric("Exchange rate", "Not available")
 else:
-    # This shows if your database 'countries' table is missing the currency_code column
-    o3.metric("Exchange rate (local per USD)", "Code Missing")
+    o3.metric("Exchange rate", "No Country Selected")
 
 
 # Shares Section
