@@ -185,7 +185,9 @@
 # st.caption("© Economy Intelligence Platform")
 
 
+
 import streamlit as st
+import pandas as pd # Needed for safety checks
 
 from utils.db import fetch_df
 from utils.aggregations import (
@@ -204,44 +206,47 @@ from utils.live_counter import (
     live_continent_population_value,
 )
 
-
+# ---------------- CONFIG ----------------
 st.set_page_config(layout="wide")
 
 CURRENT_YEAR = 2025
 BASE_YEAR = 2024
 
-#header
+# ---------------- HEADER ----------------
 st.markdown("## 🌍 Continent Intelligence")
 st.markdown("Live macroeconomic overview by continent")
 st.markdown("---")
 
-#loading data
-df = get_all_continent_core(BASE_YEAR, CURRENT_YEAR)
-df.columns = [c.lower() for c in df.columns]
+# ---------------- LOAD OVERVIEW DATA ----------------
+try:
+    df = get_all_continent_core(BASE_YEAR, CURRENT_YEAR)
+    df.columns = [c.lower() for c in df.columns]
 
-# population growth map
-pop_growth_df = fetch_df(
-    """
-    SELECT continent_code, growth_rate
-    FROM continent_population_growth
-    WHERE year = %s
-    """,
-    (CURRENT_YEAR,),
-)
-pop_growth_df.columns = [c.lower() for c in pop_growth_df.columns]
-pop_growth_map = dict(zip(
-    pop_growth_df.continent_code,
-    pop_growth_df.growth_rate
-))
+    # population growth map
+    pop_growth_df = fetch_df(
+        """
+        SELECT continent_code, growth_rate
+        FROM continent_population_growth
+        WHERE year = %s
+        """,
+        (CURRENT_YEAR,),
+    )
+    pop_growth_df.columns = [c.lower() for c in pop_growth_df.columns]
+    pop_growth_map = dict(zip(
+        pop_growth_df.continent_code,
+        pop_growth_df.growth_rate
+    ))
+except Exception as e:
+    st.error(f"⚠️ Critical Error loading overview data: {e}")
+    st.stop()
 
-#FRAGMENT 1: OVERVIEW TABLE
+# ---------------- FRAGMENT 1: OVERVIEW TABLE ----------------
 @st.fragment(run_every="1s")
 def render_live_table(data_df, growth_map):
     st.markdown("### 📊 Continents Overview")
     rows = []
 
     for _, r in data_df.iterrows():
-
         c_code = r.get('continent_code')
         
         live_gdp_trillion = live_continent_nominal_value(
@@ -273,30 +278,40 @@ def render_live_table(data_df, growth_map):
 # Call the fragment
 render_live_table(df, pop_growth_map)
 
-#Continent select :-
+# ---------------- CONTINENT SELECT ----------------
 st.markdown("---")
 
 continent_map = dict(zip(df.continent_name, df.continent_code))
 selected = st.selectbox("Select Continent", df.continent_name.tolist())
 code = continent_map[selected]
 
-#CONTINENT DETAIL
-detail_query = get_continent_detail(code, BASE_YEAR)
-detail_query.columns = [c.lower() for c in detail_query.columns]
-detail_series = detail_query.iloc[0]
+# ---------------- LOAD DETAIL DATA (With Safety) ----------------
+# We initialize default empty values to prevent crashes if DB fails
+detail = {}
+pop_growth = 0
+nominal_growth = 0
 
-#Convert to dict and ensure keys are stable
-detail = detail_series.to_dict()
+try:
+    detail_query = get_continent_detail(code, BASE_YEAR)
+    detail_query.columns = [c.lower() for c in detail_query.columns]
+    
+    if not detail_query.empty:
+        detail_series = detail_query.iloc[0]
+        detail = detail_series.to_dict()
+        pop_growth = pop_growth_map.get(code, 0)
+        nominal_growth = detail.get('real_growth', 0) + detail.get('inflation', 0)
+    else:
+        st.warning(f"⚠️ No detail data found for {selected}")
 
-pop_growth = pop_growth_map.get(code, 0)
-nominal_growth = detail.get('real_growth', 0) + detail.get('inflation', 0)
+except Exception as e:
+    st.error(f"Error fetching continent details: {e}")
 
-#FRAGMENT 2: LIVE DETAIL HEADER
+# ---------------- FRAGMENT 2: LIVE DETAIL HEADER ----------------
 @st.fragment(run_every="1s")
 def render_live_detail(d, p_growth):
-    # .get() to handle any potential missing keys during refresh
     c_code = d.get('continent_code')
     
+    # Check if 'd' is valid, otherwise use defaults
     live_gdp_trillion = live_continent_nominal_value(
         c_code,
         d.get('gdp_usd', 0),
@@ -312,7 +327,7 @@ def render_live_detail(d, p_growth):
         BASE_YEAR,
     )
 
-    st.markdown(f"## 🌍 {d.get('continent_name')} — Live Economy")
+    st.markdown(f"## 🌍 {d.get('continent_name', selected)} — Live Economy")
     st.caption(f"From Jan 1, {CURRENT_YEAR} up to now (current USD)")
 
     st.markdown(
@@ -338,7 +353,7 @@ def render_live_detail(d, p_growth):
 # Call fragment
 render_live_detail(detail, pop_growth)
 
-#GROWTH METRICS (Static) -
+# ---------------- GROWTH METRICS (Static) ----------------
 st.markdown("---")
 
 c1, c2, c3, c4 = st.columns(4)
@@ -347,31 +362,41 @@ c2.metric("Inflation", format_percent(detail.get('inflation', 0)))
 c3.metric("Nominal Growth", format_percent(nominal_growth))
 c4.metric("Base GDP (2024)", format_trillions_from_billions(detail.get('gdp_usd', 0)))
 
-# TRADE -
+# ---------------- TRADE (Fixed Crash Point) ----------------
 st.markdown("---")
 st.markdown("### 🌐 Trade")
 
-trade_res = fetch_df(
-    """
-    SELECT exports_usd, imports_usd, trade_balance_usd
-    FROM continent_trade
-    WHERE continent_code = %s AND year = %s
-    """,
-    (code, CURRENT_YEAR),
-)
-if not trade_res.empty:
-    trade_res.columns = [c.lower() for c in trade_res.columns]
-    trade = trade_res.iloc[0].to_dict()
-else:
-    # Option B: Create a dummy dict to prevent app crash
-    trade = {'exports_usd': 0, 'imports_usd': 0, 'trade_balance_usd': 0}
+try:
+    # 1. Try to fetch trade data
+    trade_res = fetch_df(
+        """
+        SELECT exports_usd, imports_usd, trade_balance_usd
+        FROM continent_trade
+        WHERE continent_code = %s AND year = %s
+        """,
+        (code, CURRENT_YEAR),
+    )
+    
+    # 2. Prepare a safe dictionary
+    trade = {} 
 
-c1, c2, c3 = st.columns(3)
-# Use .get() with a default of 0 to be safe
-c1.metric("Exports", format_trillions_raw(trade.get('exports_usd', 0)))
-c2.metric("Imports", format_trillions_raw(trade.get('imports_usd', 0)))
-c3.metric("Trade Balance", format_trillions_raw(trade.get('trade_balance_usd', 0)))
+    # 3. Check if we got results
+    if trade_res is not None and not trade_res.empty:
+        trade_res.columns = [c.lower() for c in trade_res.columns]
+        trade = trade_res.iloc[0].to_dict()
+    else:
+        # Fallback: Create zeros if data is missing for this continent
+        # st.caption(f"⚠️ Trade data for {CURRENT_YEAR} not available yet. Showing defaults.")
+        trade = {'exports_usd': 0, 'imports_usd': 0, 'trade_balance_usd': 0}
 
-# ---------------- FOOTER --------------------------------------------------------------
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Exports", format_trillions_raw(trade.get('exports_usd', 0)))
+    c2.metric("Imports", format_trillions_raw(trade.get('imports_usd', 0)))
+    c3.metric("Trade Balance", format_trillions_raw(trade.get('trade_balance_usd', 0)))
+
+except Exception as e:
+    st.error(f"Error loading trade section: {e}")
+
+# ---------------- FOOTER ----------------
 st.markdown("---")
 st.caption("© Economy Intelligence Platform")
