@@ -12,7 +12,7 @@ st.set_page_config(layout="wide", page_title="Country Intelligence")
 # Use timezone-aware UTC
 CURRENT_YEAR = datetime.now(timezone.utc).year
 # stored base-year rows (e.g. 2024) are treated as Jan 1, stored_year + 1
-BASE_YEAR = CURRENT_YEAR - 1
+BASE_YEAR = CURRENT_YEAR - 2
 
 # --------::::::::::: Small SQL Helpers ::::::::::::::::::---------
 def table_has_column(table_name: str, column_name: str) -> bool:
