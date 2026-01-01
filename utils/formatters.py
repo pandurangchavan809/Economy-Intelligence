@@ -112,3 +112,18 @@ def format_trillions_detailed(value_usd, decimals=8):
         return f"${t:,.{decimals}f} T"
     except Exception:
         return str(value_usd)
+
+
+def format_live_value(value):
+    if value is None:
+        return "Not available"
+    
+    # Scaling logic
+    if value >= 1e12:
+        return f"${value / 1e12:,.8f} T"  # Trillions
+    elif value >= 1e9:
+        return f"${value / 1e9:,.6f} B"   # Billions
+    elif value >= 1e6:
+        return f"${value / 1e6:,.4f} M"   # Millions
+    else:
+        return f"${value:,.2f}"
