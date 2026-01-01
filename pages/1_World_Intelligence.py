@@ -54,7 +54,7 @@ def render_live_gdp():
     
     st.markdown("---")
     st.markdown("### 🌐 World GDP Live")
-    st.caption(f"From Jan 1, {CURRENT_YEAR} up to now (current USD)")
+    st.caption(f"From Jan 1, {CURRENT_YEAR + 1} up to now (current USD)")
     st.markdown(
         f"""
         <h1 style="text-align:center; font-weight:700;">
