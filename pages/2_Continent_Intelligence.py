@@ -139,6 +139,7 @@ def render_live_detail(d, p_growth):
         """,
         unsafe_allow_html=True,
     )
+    st.caption("Note: The 8th decimal place represents a $10,000 USD change in real-time.")
     
     st.markdown("---")
     st.markdown("### 👥 Population")

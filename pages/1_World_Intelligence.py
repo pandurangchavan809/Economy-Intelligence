@@ -66,7 +66,9 @@ def render_live_gdp():
         """,
         unsafe_allow_html=True,
     )
+    st.caption("Note: The 8th decimal place represents a $10,000 USD change in real-time.")
     return world_gdp_live
+    
 
 @st.fragment(run_every="1s")
 def render_live_population(gdp_live):
