@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from utils.db import fetch_df
 from utils.formatters import format_number, format_percent
 from utils.live_counter import live_nominal_value, live_population_value
+from utils.currency import get_exchange_rate
 
 #::::::::::------------------ CONFIG --------------:::::::::::::::::
 st.set_page_config(layout="wide", page_title="Country Intelligence")
@@ -256,7 +257,23 @@ elif table_has_column("country_military_share", "military_spending"):
 o1.metric("Military spending (latest)", mil_display)
 debt_val = ind.get("debt_gdp") or ind.get("debt_to_gdp")
 o2.metric("Debt-to-GDP", format_percent(debt_val) if debt_val is not None else "Not available")
-o3.metric("Exchange rate (local per USD)", f"{ind.get('exchange_rate')}" if ind.get('exchange_rate') else "Not available")
+# Assuming 'iso3' or 'currency_code' is available in your 'meta' or 'ind' dictionary
+# If you don't have currency_code in the DB yet, we can use a fallback mapping
+currency_code = meta.get("currency_code") or ind.get("currency_code")
+if currency_code:
+    live_rate = get_exchange_rate(currency_code)
+    if live_rate:
+        # Displays: 1 USD = 83.25 INR (as an example)
+        o3.metric(
+            label=f"Exchange rate (USD/{currency_code})", 
+            value=f"{live_rate:,.2f} {currency_code}",
+            help=f"Latest market value of 1 US Dollar in {meta['name']}"
+        )
+    else:
+        o3.metric("Exchange rate (local per USD)", "Rate Unavailable")
+else:
+    # If the database doesn't have the code, show 'Not available' as before
+    o3.metric("Exchange rate (local per USD)", "Not available")
 
 # Shares Section
 st.markdown("---")
