@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import datetime, timezone
 
 from utils.db import fetch_df
-from utils.formatters import format_number, format_percent, format_live_value
+from utils.formatters import format_number, format_percent
 from utils.live_counter import live_nominal_value, live_population_value
 from utils.currency import get_rate_by_country_name
 
@@ -190,29 +190,17 @@ def render_live_metrics(indicator_dict, p_val, p_year, p_growth):
     gdp_val = indicator_dict.get("gdp")
     live_gdp_display = "Not available"
     live_gdp_usd = None
-    
     if gdp_val is not None:
         try:
             g_base = (indicator_dict.get("year") or BASE_YEAR) + 1
-    
-            base_gdp_usd = live_nominal_value(
+            live_gdp_usd = live_nominal_value(
                 float(gdp_val), 
                 indicator_dict.get("gdp_growth") or 0.0, 
                 indicator_dict.get("inflation") or 0.0, 
                 g_base
             )
-            
-            total_rate = ((indicator_dict.get("gdp_growth") or 0.0) + (indicator_dict.get("inflation") or 0.0)) / 100
-            growth_per_sec = (base_gdp_usd * total_rate) / 31536000
-            
-            seconds_passed = time.time() % 86400
-            live_gdp_usd = base_gdp_usd + (growth_per_sec * seconds_passed)
-            
-            from utils.formatters import format_live_value
-            live_gdp_display = format_live_value(live_gdp_usd)
-            
-        except Exception:
-            pass
+            live_gdp_display = f"${live_gdp_usd / 1e12:,.8f} T"
+        except: pass
 
     # Per Capita
     gdp_pc_display = "Not available"
