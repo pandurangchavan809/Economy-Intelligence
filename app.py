@@ -132,9 +132,3 @@ if prompt := st.chat_input(f"Ask about {selected_country}'s fiscal policy..."):
         response = genai.GenerativeModel(MODEL_ID).generate_content(f"Analyze {selected_country}: {prompt}")
         st.markdown(response.text)
         st.session_state.messages.append({"role": "assistant", "content": response.text})
-
-
-
-
-
-        
