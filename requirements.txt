@@ -11,7 +11,7 @@ plotly
 google-generativeai
 streamlit-autorefresh
 sqlalchemy
-
+countryinfo
 
 # activate venv : .\venv\Scripts\Activate.ps1
 
