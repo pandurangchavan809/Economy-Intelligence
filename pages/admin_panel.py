@@ -121,7 +121,7 @@ def check_password():
     if st.session_state["admin_authenticated"]:
         return True
 
-    st.sidebar.title("🔒 Admin Login")
+    st.sidebar.title("Admin Login")
     admin_id = st.sidebar.text_input("Admin ID")
     password = st.sidebar.text_input("Password", type="password")
     
@@ -137,7 +137,7 @@ def check_password():
     return False
 
 if check_password():
-    st.title("🛠️ Economic Intelligence: Admin Control")
+    st.title("Economic Intelligence: Admin Control")
     st.markdown("Update your Aiven Database values for Quarterly/Yearly consistency.")
 
     # --- SIDEBAR TOOLS ---
@@ -207,7 +207,7 @@ if check_password():
 
     # ::::::::::::::::::: MANUAL SQL OVERRIDE (The Core CRUD Tool) :::::::::::::::::::
     st.markdown("---")
-    st.subheader("🚀 Powerful SQL Command Center")
+    st.subheader("Powerful SQL Command Center")
     st.caption("Use this to Add, Update, or Delete specific rows in your Aiven Database.")
     
     with st.expander("Show SQL Examples"):
@@ -219,12 +219,14 @@ if check_password():
     if st.button("Execute Query"):
         if sql_input:
             try:
-                rows_affected = execute_query(sql_input)
-                st.success(f"Query Executed! Rows affected: {rows_affected}")
+                output = execute_query(sql_input)
+                if isinstance(output, list): # It was a SELECT query
+                    st.write("Query Results:")
+                    st.dataframe(pd.DataFrame(output))
+                else:
+                    st.success(f"Query Executed! Rows affected: {output}")
             except Exception as e:
                 st.error(f"SQL Error: {e}")
-        else:
-            st.warning("Please enter a query first.")
 
     # ---------------- FOOTER ----------------
     st.markdown("---")
