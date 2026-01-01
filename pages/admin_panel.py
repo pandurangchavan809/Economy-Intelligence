@@ -220,11 +220,17 @@ if check_password():
         if sql_input:
             try:
                 output = execute_query(sql_input)
-                if isinstance(output, list): # It was a SELECT query
-                    st.write("Query Results:")
-                    st.dataframe(pd.DataFrame(output))
+            
+            # Check if the output is a list of data (from a SELECT)
+                if isinstance(output, list): 
+                    if output: # If rows were returned
+                        st.write("### 📋 Query Results")
+                    # Convert the list of tuples into a clean DataFrame
+                        st.dataframe(pd.DataFrame(output), use_container_width=True)
+                    else:
+                        st.info("Query executed successfully, but no rows were found.")
                 else:
-                    st.success(f"Query Executed! Rows affected: {output}")
+                    st.success(f"Action Successful! Rows affected: {output}")
             except Exception as e:
                 st.error(f"SQL Error: {e}")
 
