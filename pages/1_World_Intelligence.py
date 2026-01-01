@@ -24,8 +24,8 @@ from utils.aggregations import (
 st.set_page_config(layout="wide")
 
 # Modern way to get the year without DeprecationWarnings
-CURRENT_YEAR = datetime.now(UTC).year - 1
-BASE_YEAR = CURRENT_YEAR - 1
+CURRENT_YEAR = datetime.now(UTC).year - 1       # until 2025 data not available i continuing this live counter from 1 jan 2025. when world bank release the data of 2025 remove -1
+BASE_YEAR = CURRENT_YEAR - 1                  # such that base year became 2025 uses this data instead of continue from 2024
 
 #================= Header ===================================
 st.markdown("## 🌍 World Intelligence Hub")
