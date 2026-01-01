@@ -199,7 +199,7 @@ def render_live_metrics(indicator_dict, p_val, p_year, p_growth):
                 indicator_dict.get("inflation") or 0.0, 
                 g_base
             )
-            live_gdp_display = f"${live_gdp_usd / 1e12:,.8f} T"
+            live_gdp_display = f"${live_gdp_usd / 1e12:,.12f} T"
         except: pass
 
     # Per Capita
