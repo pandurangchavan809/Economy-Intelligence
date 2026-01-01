@@ -74,6 +74,11 @@ def fetch_historical_intel(country):
 st.title("📊 AI Economics Dashboard")
 st.caption(f"Engine: {MODEL_ID.upper()} | Timeline: 2015 — 2025")
 
+st.set_page_config(
+    page_title="AI Economic Vision", # This changes the Chrome/Safari tab name 
+    layout="wide"
+)
+
 with st.sidebar:
     st.header("Search Country")
     selected_country = st.text_input("Enter Country", "Japan")
