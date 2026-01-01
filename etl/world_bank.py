@@ -154,7 +154,6 @@ def fetch_indicator(country, indicator, retries=3):
             return []
     return []
 
-# MODIFIED: Added progress_callback argument
 def run(progress_callback=None):
     conn = get_connection()
     if not conn:
@@ -163,12 +162,25 @@ def run(progress_callback=None):
 
     cursor = conn.cursor(dictionary=True)
 
-    print("🌍 Fetching country list from Aiven...")
-    cursor.execute("SELECT country_id, iso3 FROM countries WHERE iso3 IS NOT NULL")
+    # RESUME LOGIC: Only select countries that DO NOT have data in economic_indicators yet
+    print("🌍 Identifying remaining countries...")
+    resume_query = """
+        SELECT c.country_id, c.iso3 
+        FROM countries c
+        LEFT JOIN (
+            SELECT DISTINCT country_id FROM economic_indicators
+        ) e ON c.country_id = e.country_id
+        WHERE e.country_id IS NULL AND c.iso3 IS NOT NULL
+    """
+    cursor.execute(resume_query)
     country_rows = cursor.fetchall()
     
     country_map = {row["iso3"]: row["country_id"] for row in country_rows}
     all_iso_codes = list(country_map.keys())
+
+    if not all_iso_codes:
+        print("✅ All countries are already up to date!")
+        return
 
     insert_sql = """
         INSERT INTO economic_indicators 
@@ -184,21 +196,18 @@ def run(progress_callback=None):
             military_spending = VALUES(military_spending)
     """
 
-    total_countries = len(all_iso_codes)
-    print(f"🚀 Starting ingestion for {total_countries} countries...")
+    total_remaining = len(all_iso_codes)
+    print(f"🚀 Resuming ingestion for {total_remaining} remaining countries...")
 
     for index, iso3 in enumerate(all_iso_codes):
-        # Notify Streamlit UI of current progress
         if progress_callback:
-            progress_callback(index + 1, total_countries, iso3)
+            # We show total_remaining so the progress bar fills up correctly for this batch
+            progress_callback(index + 1, total_remaining, iso3)
 
         if not iso3 or len(iso3) != 3:
-            print(f"⏩ Skipping invalid ISO3: {iso3}")
             continue
 
-        print(f"📊 [{index+1}/{total_countries}] Processing {iso3}")
         values_by_year = {}
-
         for field, indicator in INDICATORS.items():
             records = fetch_indicator(iso3, indicator)
             if not records:
@@ -226,14 +235,12 @@ def run(progress_callback=None):
                 )
             conn.commit()
             print(f"✅ Saved {iso3}")
-        else:
-            print(f"ℹ️ No data found for {iso3}")
 
-        time.sleep(1.5) # Breath to avoid ban
+        time.sleep(1.5) 
 
     cursor.close()
     conn.close()
-    print("🏁 Full World Bank ETL completed successfully!")
+    print("🏁 Resume sync completed successfully!")
 
 if __name__ == "__main__":
     run()
