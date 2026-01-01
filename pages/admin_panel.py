@@ -37,7 +37,6 @@ if check_password():
 
     # DYNAMIC METADATA: Get all tables and views available in the database
     try:
-        # 'SHOW FULL TABLES' returns two columns: table name and 'BASE TABLE' or 'VIEW'
         tables_meta = fetch_df("SHOW FULL TABLES")
         all_tables_list = tables_meta.iloc[:, 0].tolist()
     except Exception as e:
@@ -45,9 +44,9 @@ if check_password():
         all_tables_list = []
 
     # --- TABBED INTERFACE ---
-    tab1, tab2, tab3 = st.tabs(["📊 Global Data", "🌍 Continent Data", "🏳️ Country Data"])
+    tab1, tab2, tab3 = st.tabs(["Global Data", "Continent Data", "Country Data"])
 
-    # ::::::::::::::::::: TAB 1: GLOBAL :::::::::::::::::::
+    # ::::::::::::::: TAB 1: GLOBAL :::::::::::
     with tab1:
         st.subheader("Global Macroeconomic Updates")
         # Filter list to only show global-prefixed tables
@@ -60,7 +59,7 @@ if check_password():
         if st.button("Save Global Changes"):
             st.info("Direct synchronization logic is best handled via the SQL Command Center below for specific row updates.")
 
-    # ::::::::::::::::::: TAB 2: CONTINENT :::::::::::::::::::
+    # :::::::::: TAB 2: CONTINENT :::::::::::::::::::
     with tab2:
         st.subheader("Continent Level Updates")
         continent_tables = [t for t in all_tables_list if t.startswith('continent_')]
@@ -72,7 +71,7 @@ if check_password():
         if st.button("Save Continent Changes"):
             st.success("Changes captured in editor. Use SQL below to commit specific data points.")
 
-# ::::::::::::::::::: TAB 3: COUNTRY :::::::::::::::::::
+# ::::::::::: TAB 3: COUNTRY :::::::::
     with tab3:
         st.subheader("Country Level Updates")
         try:
@@ -85,7 +84,6 @@ if check_password():
             country_tables = [t for t in all_tables_list if t.startswith('country_') or 'indicator' in t]
             co_table = st.selectbox("Metric Category", country_tables if country_tables else all_tables_list)
             
-            # --- BUG FIX LOGIC START ---
             # Check the actual columns of the selected table to avoid "Unknown column" errors
             columns_df = fetch_df(f"DESCRIBE {co_table}")
             existing_cols = columns_df.iloc[:, 0].tolist()
@@ -103,12 +101,11 @@ if check_password():
                 st.info("Showing all rows for this table instead:")
                 co_df = fetch_df(f"SELECT * FROM {co_table} LIMIT 100")
                 st.dataframe(co_df)
-            # --- BUG FIX LOGIC END ---
 
         except Exception as e:
             st.error(f"Could not load country list: {e}")
 
-    # ::::::::::::::::::: MANUAL SQL OVERRIDE (The Core CRUD Tool) :::::::::::::::::::
+    # ::::::: MANUAL SQL OVERRIDE (The CRUD Tool) ::::::
     st.markdown("---")
     st.subheader("Powerful SQL Command Center")
     st.caption("Use this to Add, Update, or Delete specific rows in your Aiven Database.")

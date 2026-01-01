@@ -12,20 +12,6 @@
 # #         database=os.getenv("DB_NAME")
 # #     )
 
-# import os
-# import mysql.connector
-# import streamlit as st # Import streamlit to access secrets
-
-# def get_connection():
-#     # On Streamlit Cloud, st.secrets works like environment variables
-#     return mysql.connector.connect(
-#         host=st.secrets["DB_HOST"],
-#         user=st.secrets["DB_USER"],
-#         password=st.secrets["DB_PASSWORD"],
-#         database=st.secrets["DB_NAME"],
-#         port=int(st.secrets["DB_PORT"]) # Aiven requires port 22611
-#     )
-
 import os
 import mysql.connector
 import streamlit as st
@@ -45,3 +31,4 @@ def get_connection():
     except mysql.connector.Error as err:
         st.error(f"Error connecting to Aiven: {err}")
         return None
+    

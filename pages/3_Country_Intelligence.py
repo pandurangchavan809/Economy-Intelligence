@@ -258,9 +258,8 @@ o1.metric("Military spending (latest)", mil_display)
 debt_val = ind.get("debt_gdp") or ind.get("debt_to_gdp")
 o2.metric("Debt-to-GDP", format_percent(debt_val) if debt_val is not None else "Not available")
 
-# Use the name you already have (e.g., "India", "Brazil")
+# Use the name already have (e.g., "India", "Brazil")
 country_name = meta.get("name") 
-
 if country_name:
     rate, code = get_rate_by_country_name(country_name)
     
@@ -274,7 +273,6 @@ if country_name:
         o3.metric("Exchange rate", "Not available")
 else:
     o3.metric("Exchange rate", "No Country Selected")
-
 
 # Shares Section
 st.markdown("---")

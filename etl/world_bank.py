@@ -1,118 +1,3 @@
-# import requests
-# import time
-# from database.connection import get_connection
-
-# BASE_URL = "https://api.worldbank.org/v2/country/{country}/indicator/{indicator}"
-# START_YEAR = 2004
-# END_YEAR = 2025
-
-# INDICATORS = {
-#     "gdp": "NY.GDP.MKTP.CD",
-#     "gdp_growth": "NY.GDP.MKTP.KD.ZG",
-#     "inflation": "FP.CPI.TOTL.ZG",
-#     "unemployment": "SL.UEM.TOTL.ZS",
-#     "military_spending": "MS.MIL.XPND.CD",
-#     "debt_gdp": "GC.DOD.TOTL.GD.ZS"
-# }
-
-# TOP_COUNTRIES = [
-#     "USA", "CHN", "JPN", "DEU", "IND",
-#     "GBR", "FRA", "ITA", "BRA", "CAN",
-#     "RUS", "KOR", "AUS", "ESP", "MEX"
-# ]
-
-
-
-# def fetch_indicator(country, indicator, retries=3):
-#     url = BASE_URL.format(country=country, indicator=indicator)
-#     params = {
-#         "format": "json",
-#         "per_page": 1000,
-#         "date": f"{START_YEAR}:{END_YEAR}"
-#     }
-
-#     for attempt in range(1, retries + 1):
-#         try:
-#             r = requests.get(url, params=params, timeout=60)
-#             data = r.json()
-
-#             if not isinstance(data, list) or len(data) < 2:
-#                 return []
-
-#             return data[1]
-
-#         except requests.exceptions.ReadTimeout:
-#             print(f"⏳ Timeout for {country}-{indicator} (attempt {attempt})")
-#             time.sleep(2 * attempt)
-
-#         except Exception as e:
-#             print(f"⚠️ Error for {country}-{indicator}: {e}")
-#             return []
-
-#     print(f"❌ Failed after retries: {country}-{indicator}")
-#     return []
-
-
-
-# def run():
-#     conn = get_connection()
-#     cursor = conn.cursor(dictionary=True)
-
-#     cursor.execute("SELECT country_id, iso3 FROM countries")
-#     country_map = {row["iso3"]: row["country_id"] for row in cursor.fetchall()}
-
-#     insert_sql = """
-#         INSERT INTO economic_indicators
-#         (country_id, year, gdp, gdp_growth, inflation,
-#          unemployment, debt_gdp, military_spending)
-#         VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-#         ON DUPLICATE KEY UPDATE
-#             gdp = VALUES(gdp),
-#             gdp_growth = VALUES(gdp_growth),
-#             inflation = VALUES(inflation),
-#             unemployment = VALUES(unemployment),
-#             debt_gdp = VALUES(debt_gdp),
-#             military_spending = VALUES(military_spending)
-#     """
-
-#     for iso3 in TOP_COUNTRIES:
-#         print(f"📊 Processing {iso3}")
-#         values_by_year = {}
-#         time.sleep(1)
-
-
-#         for field, indicator in INDICATORS.items():
-#             records = fetch_indicator(iso3, indicator)
-#             for r in records:
-#                 year = int(r["date"])
-#                 values_by_year.setdefault(year, {})[field] = r["value"]
-
-#         for year, metrics in values_by_year.items():
-#             cursor.execute(
-#                 insert_sql,
-#                 (
-#                     country_map.get(iso3),
-#                     year,
-#                     metrics.get("gdp"),
-#                     metrics.get("gdp_growth"),
-#                     metrics.get("inflation"),
-#                     metrics.get("unemployment"),
-#                     metrics.get("debt_gdp"),
-#                     metrics.get("military_spending"),
-#                 )
-#             )
-
-#     conn.commit()
-#     cursor.close()
-#     conn.close()
-#     print("✅ World Bank ETL completed successfully")
-
-
-# if __name__ == "__main__":
-#     run()
-
-
-
 import requests
 import time
 from database.connection import get_connection
@@ -152,10 +37,7 @@ def fetch_indicator(country, indicator, retries=3):
             # API Structure Validation
             if not isinstance(data, list) or len(data) < 2:
                 return []
-
-            # --- THE FIX FOR 'NoneType' ERROR ---
-            # World Bank sometimes returns [metadata, null] for small countries like AIA.
-            # We must explicitly check if the data part (index 1) is None.
+            
             if data[1] is None:
                 return []
             
@@ -164,7 +46,7 @@ def fetch_indicator(country, indicator, retries=3):
         except Exception as e:
             # Only print error on the last attempt to keep logs clean
             if attempt == retries:
-                print(f"⚠️ Failed to fetch {country}-{indicator}: {e}")
+                print(f"Failed to fetch {country}-{indicator}: {e}")
             time.sleep(1.5 * attempt) # Exponential backoff for retries
             
     return [] # Always return an empty list if all retries fail
@@ -172,12 +54,12 @@ def fetch_indicator(country, indicator, retries=3):
 def run(progress_callback=None):
     conn = get_connection()
     if not conn:
-        print("❌ Database connection failed.")
+        print("Database connection failed.")
         return
 
     cursor = conn.cursor(dictionary=True)
 
-    # 1. INTELLIGENT RESUME LOGIC
+    # INTELLIGENT RESUME LOGIC
     # Only select countries that exist in 'countries' table but NOT in 'economic_indicators'
     resume_query = """
         SELECT c.country_id, c.iso3 
@@ -188,7 +70,7 @@ def run(progress_callback=None):
         WHERE e.country_id IS NULL AND c.iso3 IS NOT NULL
     """
     
-    print("🌍 Analyzing database to find missing countries...")
+    print("Analyzing database to find missing countries...")
     cursor.execute(resume_query)
     country_rows = cursor.fetchall()
     
@@ -197,7 +79,7 @@ def run(progress_callback=None):
 
     # If no countries left, we are done
     if not all_iso_codes:
-        print("✅ Database is already 100% synchronized!")
+        print("Database is already 100% synchronized!")
         if progress_callback:
             progress_callback(1, 1, "DONE")
         return
@@ -217,16 +99,16 @@ def run(progress_callback=None):
     """
 
     total_remaining = len(all_iso_codes)
-    print(f"🚀 Resuming sync for remaining {total_remaining} countries...")
+    print(f"Resuming sync for remaining {total_remaining} countries...")
 
     for index, iso3 in enumerate(all_iso_codes):
-        # 2. PROGRESS CALLBACK
+        # PROGRESS CALLBACK
         if progress_callback:
             progress_callback(index + 1, total_remaining, iso3)
 
         values_by_year = {}
 
-        # 3. ROBUST DATA FETCHING
+        #ROBUST DATA FETCHING
         for field, indicator in INDICATORS.items():
             records = fetch_indicator(iso3, indicator)
             
@@ -243,7 +125,7 @@ def run(progress_callback=None):
                     except ValueError:
                         continue
 
-        # 4. ATOMIC COMMIT
+        # ATOMIC COMMIT
         if values_by_year:
             for year, metrics in values_by_year.items():
                 cursor.execute(insert_sql, (
@@ -256,16 +138,16 @@ def run(progress_callback=None):
                     metrics.get("military_spending")
                 ))
             conn.commit() # Save specifically after this country finishes
-            print(f"✅ Synced {iso3}")
+            print(f"Synced {iso3}")
         else:
             # Even if no data, we 'commit' nothing but still sleep to respect API limits
-            print(f"ℹ️ No data available for {iso3}")
+            print(f"No data available for {iso3}")
 
         time.sleep(1.2) # Rate limit protection
 
     cursor.close()
     conn.close()
-    print("🏁 Synchronization complete.")
+    print("Synchronization complete.")
 
 if __name__ == "__main__":
     run()
