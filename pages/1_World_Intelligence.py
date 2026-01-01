@@ -24,8 +24,8 @@ from utils.aggregations import (
 st.set_page_config(layout="wide")
 
 # Modern way to get the year without DeprecationWarnings
-CURRENT_YEAR = datetime.now(UTC).year 
-BASE_YEAR = CURRENT_YEAR - 2
+CURRENT_YEAR = datetime.now(UTC).year - 1
+BASE_YEAR = CURRENT_YEAR - 1
 
 #================= Header ===================================
 st.markdown("## 🌍 World Intelligence Hub")
