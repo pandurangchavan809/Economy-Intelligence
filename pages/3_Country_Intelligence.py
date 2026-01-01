@@ -210,6 +210,7 @@ def render_live_metrics(indicator_dict, p_val, p_year, p_growth):
     st.markdown("### Key Indicators")
     k1, k2, k3, k4 = st.columns([3,2,2,2])
     k1.metric("GDP (Live)", live_gdp_display)
+    st.caption("Note: The 8th decimal place represents a $10,000 USD change in real-time.")
     k2.metric("Population", population_display)
     k3.metric("GDP per Capita (Live)", gdp_pc_display)
     k4.metric("Population growth", format_percent(p_growth) if p_growth is not None else "Not available")
