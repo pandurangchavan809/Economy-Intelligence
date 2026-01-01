@@ -142,18 +142,15 @@ def fetch_indicator(country, indicator, retries=3):
                 continue
             
             data = r.json()
-            # Check if data is a valid list with at least 2 elements
+            # FIX: Ensure we always return a list, never None
             if isinstance(data, list) and len(data) > 1:
                 return data[1]
-            return [] # Return empty list if no data found
+            return [] 
             
-        except Exception as e:
-            if attempt == retries:
-                print(f"❌ Failed {country} after {retries} tries: {e}")
+        except Exception:
             time.sleep(1)
             
-    return [] # ALWAYS return a list to prevent 'NoneType' errors
-
+    return [] # Always returns an empty list on final failure
 
 def run(progress_callback=None):
     conn = get_connection()
@@ -162,7 +159,7 @@ def run(progress_callback=None):
 
     cursor = conn.cursor(dictionary=True)
 
-    # SMART RESUME: Only get countries NOT already in the indicators table
+    # RESUME LOGIC: Skips the 128 countries already in your database
     resume_query = """
         SELECT c.country_id, c.iso3 
         FROM countries c
@@ -172,42 +169,36 @@ def run(progress_callback=None):
         WHERE e.country_id IS NULL AND c.iso3 IS NOT NULL
     """
     
-    print("🌍 Checking which countries still need data...")
     cursor.execute(resume_query)
     country_rows = cursor.fetchall()
-    
     country_map = {row["iso3"]: row["country_id"] for row in country_rows}
     all_iso_codes = list(country_map.keys())
 
     if not all_iso_codes:
-        print("✅ All countries are already updated!")
+        print("✅ Database is already up to date!")
         return
 
-    # Keep your original SQL structure exactly as it was
     insert_sql = """
         INSERT INTO economic_indicators 
         (country_id, year, gdp, gdp_growth, inflation, 
          unemployment, debt_gdp, military_spending)
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
         ON DUPLICATE KEY UPDATE
-            gdp = VALUES(gdp),
-            gdp_growth = VALUES(gdp_growth),
-            inflation = VALUES(inflation),
-            unemployment = VALUES(unemployment),
-            debt_gdp = VALUES(debt_gdp),
-            military_spending = VALUES(military_spending)
+            gdp = VALUES(gdp), gdp_growth = VALUES(gdp_growth), 
+            inflation = VALUES(inflation), unemployment = VALUES(unemployment), 
+            debt_gdp = VALUES(debt_gdp), military_spending = VALUES(military_spending)
     """
 
     total_remaining = len(all_iso_codes)
-    
+
     for index, iso3 in enumerate(all_iso_codes):
-        # Update progress for the remaining batch
         if progress_callback:
             progress_callback(index + 1, total_remaining, iso3)
 
         values_by_year = {}
         for field, indicator in INDICATORS.items():
             records = fetch_indicator(iso3, indicator)
+            # This is now safe because fetch_indicator always returns a list
             for r in records:
                 if r.get("date") and r.get("value") is not None:
                     year = int(r["date"])
@@ -221,14 +212,12 @@ def run(progress_callback=None):
                     metrics.get("unemployment"), metrics.get("debt_gdp"),
                     metrics.get("military_spending")
                 ))
-            conn.commit() # Save each country immediately
+            conn.commit() # Save progress country-by-country
 
-        time.sleep(1.5) # Breath
+        time.sleep(1.5)
 
     cursor.close()
     conn.close()
 
 if __name__ == "__main__":
     run()
-
-
