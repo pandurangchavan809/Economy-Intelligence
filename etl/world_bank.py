@@ -153,17 +153,14 @@ def fetch_indicator(country, indicator, retries=3):
             print(f"⚠️ Error for {country}-{indicator}: {e}")
             return []
     return []
-
 def run(progress_callback=None):
     conn = get_connection()
     if not conn:
-        print("❌ Could not establish database connection.")
         return
 
     cursor = conn.cursor(dictionary=True)
 
-    # RESUME LOGIC: Only select countries that DO NOT have data in economic_indicators yet
-    print("🌍 Identifying remaining countries...")
+    # SMART RESUME: Only get countries NOT already in the indicators table
     resume_query = """
         SELECT c.country_id, c.iso3 
         FROM countries c
@@ -172,6 +169,8 @@ def run(progress_callback=None):
         ) e ON c.country_id = e.country_id
         WHERE e.country_id IS NULL AND c.iso3 IS NOT NULL
     """
+    
+    print("🌍 Checking which countries still need data...")
     cursor.execute(resume_query)
     country_rows = cursor.fetchall()
     
@@ -179,9 +178,10 @@ def run(progress_callback=None):
     all_iso_codes = list(country_map.keys())
 
     if not all_iso_codes:
-        print("✅ All countries are already up to date!")
+        print("✅ All countries are already updated!")
         return
 
+    # Keep your original SQL structure exactly as it was
     insert_sql = """
         INSERT INTO economic_indicators 
         (country_id, year, gdp, gdp_growth, inflation, 
@@ -197,22 +197,15 @@ def run(progress_callback=None):
     """
 
     total_remaining = len(all_iso_codes)
-    print(f"🚀 Resuming ingestion for {total_remaining} remaining countries...")
-
+    
     for index, iso3 in enumerate(all_iso_codes):
+        # Update progress for the remaining batch
         if progress_callback:
-            # We show total_remaining so the progress bar fills up correctly for this batch
             progress_callback(index + 1, total_remaining, iso3)
-
-        if not iso3 or len(iso3) != 3:
-            continue
 
         values_by_year = {}
         for field, indicator in INDICATORS.items():
             records = fetch_indicator(iso3, indicator)
-            if not records:
-                continue
-
             for r in records:
                 if r.get("date") and r.get("value") is not None:
                     year = int(r["date"])
@@ -220,27 +213,21 @@ def run(progress_callback=None):
 
         if values_by_year:
             for year, metrics in values_by_year.items():
-                cursor.execute(
-                    insert_sql,
-                    (
-                        country_map.get(iso3),
-                        year,
-                        metrics.get("gdp"),
-                        metrics.get("gdp_growth"),
-                        metrics.get("inflation"),
-                        metrics.get("unemployment"),
-                        metrics.get("debt_gdp"),
-                        metrics.get("military_spending"),
-                    )
-                )
-            conn.commit()
-            print(f"✅ Saved {iso3}")
+                cursor.execute(insert_sql, (
+                    country_map.get(iso3), year, metrics.get("gdp"),
+                    metrics.get("gdp_growth"), metrics.get("inflation"),
+                    metrics.get("unemployment"), metrics.get("debt_gdp"),
+                    metrics.get("military_spending")
+                ))
+            conn.commit() # Save each country immediately
 
-        time.sleep(1.5) 
+        time.sleep(1.5) # Breath
 
     cursor.close()
     conn.close()
-    print("🏁 Resume sync completed successfully!")
 
 if __name__ == "__main__":
     run()
+
+
+    
