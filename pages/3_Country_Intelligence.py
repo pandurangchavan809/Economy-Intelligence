@@ -54,9 +54,9 @@ def get_country_population(country_id, year_prefer=None):
             return int(df.iloc[0]["population"]), int(df.iloc[0]["year"])
     return None, None
 
-def get_population_growth_rate(country_id, year):
+def get_population_growth_rate(country_id, year_prefer=None):
     if table_has_column("country_population_growth", "population_growth"):
-        df = fetch_df("SELECT population_growth FROM country_population_growth WHERE country_id=%s AND year=%s LIMIT 1", (country_id, year))
+        df = fetch_df("SELECT population_growth FROM country_population_growth WHERE country_id=%s AND year=%s LIMIT 1", (country_id, year_prefer))
         if not df.empty:
             return float(df.iloc[0,0])
     
