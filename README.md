@@ -1,6 +1,6 @@
 ## 🌍 AI Economics Dashboard — Global Intelligence Platform
 # 🔗 Live Demo
-https://medrisk-heart.streamlit.app
+https://ai-economics-intelligence.streamlit.app
 
 ---
 
