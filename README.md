@@ -2,6 +2,8 @@
 # 🔗 Live Demo
 https://medrisk-heart.streamlit.app
 
+---
+
 A **professional-grade economic intelligence system** designed to transform validated macroeconomic data into **live, explainable, and decision-ready insights**.
 
 Built with **Streamlit + MySQL + Gemini (AI Analyst)**, this platform delivers **World, Continent, and Country-level intelligence** using a deterministic, database-first architecture.
