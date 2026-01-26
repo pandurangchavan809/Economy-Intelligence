@@ -1,4 +1,6 @@
-# 🌍 AI Economics Dashboard — Global Intelligence Platform
+## 🌍 AI Economics Dashboard — Global Intelligence Platform
+# 🔗 Live Demo
+https://medrisk-heart.streamlit.app
 
 A **professional-grade economic intelligence system** designed to transform validated macroeconomic data into **live, explainable, and decision-ready insights**.
 
